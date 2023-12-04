@@ -37,13 +37,15 @@ local translation = {
 	["ru"] = {
 		["Включить тело от 1-ого лица?"] = "Включить тело от 1-ого лица?",
 		["Дистанция отдаления тела от центра позиции игрока"] = "Дистанция отдаления тела от центра позиции игрока",
-		["Настройка тела от 1 лица"] = "Настройка тела от 1 лица"
+		["Настройка тела от 1 лица"] = "Настройка тела от 1 лица",
+		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."
 	},
 
 	["en"] = {
 		["Включить тело от 1-ого лица?"] = "Enable body in firstperson camera?",
 		["Дистанция отдаления тела от центра позиции игрока"] = "Distance of the body from the center of the player's position",
-		["Настройка тела от 1 лица"] = "Firstperson body settings"
+		["Настройка тела от 1 лица"] = "Firstperson body settings",
+		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "The current model doesn't have a sequences, please choose another model."
 	}
 }
 
@@ -226,7 +228,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 	local removeGarbage = function(bonesSuccess, boneCount)
 		local ent = ply.Body
-		local goofyUhhPosition = GetPos(ply) + GetViewOffset(ply) - eyeAngles:Forward() * 32
+		local goofyUhhPosition = GetPos(ply) + GetViewOffset(ply) - eyeAngles:Forward() * 4
 
 		for i = 0, boneCount - 1 do
 			local boneName = GetBoneName(ent, i)
@@ -336,7 +338,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 			SetupBones(legsNoDraw)
 
-			local this = (2 - (0.8 * ply.TimeToDuck))
+			local this = (2 - (1 * ply.TimeToDuck))
 			local cacheThis = this
 			local CT = CurTime()
 
