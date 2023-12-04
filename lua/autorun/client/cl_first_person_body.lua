@@ -228,7 +228,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 	local removeGarbage = function(bonesSuccess, boneCount)
 		local ent = ply.Body
-		local goofyUhhPosition = GetPos(ply) + GetViewOffset(ply) - eyeAngles:Forward() * 4
+		local goofyUhhPosition = GetPos(ply) + GetViewOffset(ply) - eyeAngles:Forward() * 32
 
 		for i = 0, boneCount - 1 do
 			local boneName = GetBoneName(ent, i)
@@ -338,7 +338,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 			SetupBones(legsNoDraw)
 
-			local this = (2 - (1 * ply.TimeToDuck))
+			local this = (2 - (0.8 * ply.TimeToDuck))
 			local cacheThis = this
 			local CT = CurTime()
 
