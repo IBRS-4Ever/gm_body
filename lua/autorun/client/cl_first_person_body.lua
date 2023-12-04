@@ -226,7 +226,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 	local removeGarbage = function(bonesSuccess, boneCount)
 		local ent = ply.Body
-		local goofyUhhPosition = GetPos(ply) + GetViewOffset(ply) - eyeAngles:Forward() * 4
+		local goofyUhhPosition = GetPos(ply) + GetViewOffset(ply) - eyeAngles:Forward() * 32
 
 		for i = 0, boneCount - 1 do
 			local boneName = GetBoneName(ent, i)
@@ -336,7 +336,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 			SetupBones(legsNoDraw)
 
-			local this = (2 - (1 * ply.TimeToDuck))
+			local this = (2 - (0.8 * ply.TimeToDuck))
 			local cacheThis = this
 			local CT = CurTime()
 
@@ -375,7 +375,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 										if boneName == "ValveBiped.Bip01_Pelvis" then
 											Legs_NoDraw_Angle.y = (math.NormalizeAngle(ply:EyeAngles().y - GetAngles(mat).y) + 90) / 1.25
 										elseif spineBones[boneName] then
-											this = 8 - (4 * ply.TimeToDuck)
+											this = 20 - (16 * ply.TimeToDuck)
 										end
 
 										SetTranslation(mat, mat2TR - (mat2TR - matTR) / this)
@@ -409,7 +409,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 								if boneName == "ValveBiped.Bip01_Pelvis" then
 									Legs_NoDraw_Angle.y = (math.NormalizeAngle(ply:EyeAngles().y - GetAngles(mat).y) + 90) / 1.25
 								elseif spineBones[boneName] then
-									this = 8 - (4 * ply.TimeToDuck)
+									this = 20 - (16 * ply.TimeToDuck)
 								end
 
 								local matTR, mat2TR = GetTranslation(mat), GetTranslation(mat2)
