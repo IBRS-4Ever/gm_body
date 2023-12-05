@@ -525,7 +525,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		SetParent(ply.Body, ply)
 		SetPos(ply.Body, getPos)
 		SetAngles(ply.Body, eyeAngles)
-        SetPlaybackRate(ply.Body, GetPlaybackRate(ply))
+		SetPlaybackRate(ply.Body, GetPlaybackRate(ply))
 		SetCycle(ply.Body, cycle)
 	
 		local currentView = ply:GetCurrentViewOffset()
@@ -570,9 +570,9 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				return ply:GetPlayerColor()
 			end
 
-            local seq = ply.Body:LookupSequence("idle_all_01")
+			local seq = ply.Body:LookupSequence("idle_all_01")
 
-            if seq < 0 then
+			if seq < 0 then
 				MarkToRemove(ply.Body)
 
 				erroredModels[current] = true
@@ -590,7 +590,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				return ply:GetPlayerColor()
 			end
 
-            ply.Body_NoDraw:SetSequence(seq)
+			ply.Body_NoDraw:SetSequence(seq)
 
 			ply.Body.FullyLoaded, timeCacheBones = false, 0
 		end
@@ -638,10 +638,10 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	end)
 
 	hook.Add("PreDrawBody", "cl_body.PreDrawBody_Compat", function()
-        if VWallrunning
+		if VWallrunning
 			or inmantle then
-            return false
-        end
+			return false
+		end
 	end)
 end)
 
