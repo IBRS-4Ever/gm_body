@@ -605,6 +605,12 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			return
 		end
 
+		-- compat with Gmod Legs 3
+
+		if hook.Run("ShouldDisableLegs", ply.Body) == true then
+			return
+		end
+
 		local ret = hook.Run("PreDrawBody", ply.Body)
 
 		if ret == false then
@@ -629,6 +635,13 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		cam_End3D()
 
 		hook.Run("PostDrawBody", ply.Body)
+	end)
+
+	hook.Add("PreDrawBody", "cl_body.PreDrawBody_Compat", function()
+        if VWallrunning
+			or inmantle then
+            return false
+        end
 	end)
 end)
 
