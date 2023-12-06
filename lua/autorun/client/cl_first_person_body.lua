@@ -612,13 +612,8 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			ply.Body.FullyLoaded, timeCacheBones = false, 0
 		end
 
-		if suppress then
-			return
-		end
-
-		local RT = render.GetRenderTarget()
-
-		if RT then
+		if suppress
+			or ply:ShouldDrawLocalPlayer() then
 			return
 		end
 
