@@ -640,7 +640,8 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	hook.Add("PreDrawBody", "cl_body.PreDrawBody_Compat", function()
 		if VWallrunning
 			or inmantle
-			or (VMLegs and VMLegs:IsActive()) then
+			or (VMLegs and VMLegs:IsActive())
+			or (ply.StopKick or 0) > CurTime() then
 			return false
 		end
 	end)
