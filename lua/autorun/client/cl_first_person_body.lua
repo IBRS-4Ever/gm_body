@@ -282,6 +282,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		["ValveBiped.Bip01_Spine2"] = true,
 		["ValveBiped.Bip01_Spine4"] = true
 	}
+	local miscSpineBones = {}
 
 	local GetNumPoseParameters, GetPoseParameterRange = ENTITY.GetNumPoseParameters, ENTITY.GetPoseParameterRange
 	local GetPoseParameterName, GetSequence = ENTITY.GetPoseParameterName, ENTITY.GetSequence
@@ -343,7 +344,19 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			local CT = CurTime()
 
 			if timeCacheBones < CT then
-				timeCacheBones, potentionalBones = CT + timeCache, {}
+				timeCacheBones, potentionalBones, miscSpineBones = CT + timeCache, {}, {}
+
+				for boneName in pairs(spineBones) do
+					local bone = LookupBone(ent, boneName)
+
+					if bone then
+						local bones = GetChildBonesRecursive(ent, bone)
+
+						for i = 1, #bones do
+							miscSpineBones[bones[i]] = true
+						end
+					end
+				end
 
 				for i = 1, #validBones do
 					local array = validBones[i]
@@ -377,7 +390,9 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 										if boneName == "ValveBiped.Bip01_Pelvis" then
 											Legs_NoDraw_Angle.y = (math.NormalizeAngle(ply:EyeAngles().y - GetAngles(mat).y) + 90) / 1.25
 										elseif spineBones[boneName] then
-											this = 20 - (16 * ply.TimeToDuck)
+											this = 16 - (12 * ply.TimeToDuck)
+										elseif miscSpineBones[i] then
+											this = 5
 										end
 
 										SetTranslation(mat, mat2TR - (mat2TR - matTR) / this)
@@ -411,7 +426,9 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 								if boneName == "ValveBiped.Bip01_Pelvis" then
 									Legs_NoDraw_Angle.y = (math.NormalizeAngle(ply:EyeAngles().y - GetAngles(mat).y) + 90) / 1.25
 								elseif spineBones[boneName] then
-									this = 20 - (16 * ply.TimeToDuck)
+									this = 16 - (12 * ply.TimeToDuck)
+								elseif miscSpineBones[i] then
+									this = 5
 								end
 
 								local matTR, mat2TR = GetTranslation(mat), GetTranslation(mat2)
