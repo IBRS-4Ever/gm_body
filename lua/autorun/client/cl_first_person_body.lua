@@ -46,6 +46,13 @@ local translation = {
 		["Дистанция отдаления тела от центра позиции игрока"] = "Distance of the body from the center of the player's position",
 		["Настройка тела от 1 лица"] = "Firstperson body settings",
 		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "The current model doesn't have a sequences, please choose another model."
+	},
+
+	["tr"] = {
+		["Включить тело от 1-ого лица?"] = "Birinci şahıs kamerada beden etkinleştirilsin mi?",
+		["Дистанция отдаления тела от центра позиции игрока"] = "Bedenin oyuncunun pozisyonunun merkezinden uzaklığı",
+		["Настройка тела от 1 лица"] = "Birinci şahıs beden ayarları",
+		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "Mevcut modelde bir dizi yok, lütfen başka bir model seçin."
 	}
 }
 
