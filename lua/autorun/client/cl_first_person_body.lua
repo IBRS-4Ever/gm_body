@@ -570,7 +570,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	end)
 
 	local vector_down = Vector(0, 0, -1)
-	local vec1 = Vector(0, 0, 1)
 	local erroredModels = {}
 
 	hook.Add("PreDrawViewModels", "firstperson.PreDrawViewModel", function(depth, skybox, isDraw3DSkybox)
@@ -630,13 +629,19 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			return
 		end
 
+		local shootPos, getPos = _EyePos(ply), GetPos(ply)
+
+		if render.GetRenderTarget()
+			and EyePos():DistToSqr(shootPos) > 1024 then
+			return
+		end
+
 		local ret = hook.Run("PreDrawBody", ply.Body)
 
 		if ret == false then
 			return
 		end
 
-		local shootPos, getPos = _EyePos(ply), GetPos(ply)
 		shootPos.z = 0
 		getPos.z = 0
 
@@ -645,7 +650,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 		cam_Start3D(finalPos + (shootPos - getPos), nil, nil, 0, 0, nil, nil, 0.5, -1)
 			local bEnabled = render_EnableClipping(true)
-			render_PushCustomClipPlane(vector_down, vector_down:Dot(finalPos + vec1))
+			render_PushCustomClipPlane(vector_down, vector_down:Dot(finalPos))
 				render.SetColorModulation(color.r / 255, color.g / 255, color.b / 255)
 					ply.Body:DrawModel()
 				render.SetColorModulation(m1, m2, m3)
