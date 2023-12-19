@@ -2,10 +2,16 @@ local cache = {}
 local _GetChildBonesRecursive
 local mdl = ""
 
+local ENTITY, PLAYER = FindMetaTable("Entity"), FindMetaTable("Player")
+local GetModel = ENTITY.GetModel
+local GetChildBones = ENTITY.GetChildBones
+local next = next
+local pairs, ipairs = pairs, ipairs
+
 _GetChildBonesRecursive = function(ent, bone, src)
 	local t = src or {}
 	table.insert(t, bone)
-	local cbones = ent:GetChildBones(bone)
+	local cbones = GetChildBones(ent, bone)
 
 	if cbones then
 		for _, bone in next, cbones do
@@ -17,7 +23,7 @@ _GetChildBonesRecursive = function(ent, bone, src)
 end
 
 local function GetChildBonesRecursive(ent, bone)
-	local mdl = ent:GetModel()
+	local mdl = GetModel(ent)
 	local mdlbones = cache[mdl]
 
 	if not mdlbones then
@@ -135,18 +141,15 @@ end)
 hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	hook.Remove("LocalPlayer_Validated", "cl_gmod_legs")
 
-	local pairs, ipairs = pairs, ipairs
 	local playermodelbones = {"ValveBiped.Bip01_Head1","ValveBiped.Bip01_R_Trapezius","ValveBiped.Bip01_R_Bicep","ValveBiped.Bip01_R_Shoulder", "ValveBiped.Bip01_R_Elbow","ValveBiped.Bip01_R_Wrist","ValveBiped.Bip01_R_Ulna","ValveBiped.Bip01_L_Trapezius","ValveBiped.Bip01_L_Bicep","ValveBiped.Bip01_L_Shoulder", "ValveBiped.Bip01_L_Elbow","ValveBiped.Bip01_L_Wrist","ValveBiped.Bip01_L_Ulna", "ValveBiped.Bip01_Neck1","ValveBiped.Bip01_Hair1","ValveBiped.Bip01_Hair2","ValveBiped.Bip01_L_Clavicle","ValveBiped.Bip01_R_Clavicle","ValveBiped.Bip01_R_UpperArm", "ValveBiped.Bip01_R_Forearm", "ValveBiped.Bip01_R_Hand", "ValveBiped.Bip01_L_UpperArm", "ValveBiped.Bip01_L_Forearm", "ValveBiped.Bip01_L_Hand", "ValveBiped.Bip01_L_Wrist", "ValveBiped.Bip01_R_Wrist", "ValveBiped.Bip01_L_Finger4", "ValveBiped.Bip01_L_Finger41", "ValveBiped.Bip01_L_Finger42", "ValveBiped.Bip01_L_Finger3", "ValveBiped.Bip01_L_Finger31", "ValveBiped.Bip01_L_Finger32", "ValveBiped.Bip01_L_Finger2", "ValveBiped.Bip01_L_Finger21", "ValveBiped.Bip01_L_Finger22", "ValveBiped.Bip01_L_Finger1", "ValveBiped.Bip01_L_Finger11", "ValveBiped.Bip01_L_Finger12", "ValveBiped.Bip01_L_Finger0", "ValveBiped.Bip01_L_Finger01", "ValveBiped.Bip01_L_Finger02", "ValveBiped.Bip01_R_Finger4", "ValveBiped.Bip01_R_Finger41", "ValveBiped.Bip01_R_Finger42", "ValveBiped.Bip01_R_Finger3", "ValveBiped.Bip01_R_Finger31", "ValveBiped.Bip01_R_Finger32", "ValveBiped.Bip01_R_Finger2", "ValveBiped.Bip01_R_Finger21", "ValveBiped.Bip01_R_Finger22", "ValveBiped.Bip01_R_Finger1", "ValveBiped.Bip01_R_Finger11", "ValveBiped.Bip01_R_Finger12", "ValveBiped.Bip01_R_Finger0", "ValveBiped.Bip01_R_Finger01", "ValveBiped.Bip01_R_Finger02"}
-	local a = {}
+	local playermodelbones_kv = {}
 
 	for key, v in pairs(playermodelbones) do
-		a[v] = true
+		playermodelbones_kv[v] = true
 	end
 
 	local ply = ply or LocalPlayer()
 	local vec9999 = Vector(9999, 9999, 9999)
-
-	local ENTITY, PLAYER = FindMetaTable("Entity"), FindMetaTable("Player")
 
 	local GetBoneName = ENTITY.GetBoneName
 	local LookupBone = ENTITY.LookupBone
@@ -155,14 +158,27 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	local Scale, Translate, SetTranslation, SetAngles = MATRIX.Scale, MATRIX.Translate, MATRIX.SetTranslation, MATRIX.SetAngles
 	local GetTranslation, GetAngles = MATRIX.GetTranslation, MATRIX.GetAngles
 	local SetBoneMatrix = ENTITY.SetBoneMatrix
+	local render = render
 	local cam_Start3D, render_EnableClipping, render_PushCustomClipPlane, render_PopCustomClipPlane, render_EnableClipping, cam_End3D =
 		cam.Start3D, render.EnableClipping, render.PushCustomClipPlane, render.PopCustomClipPlane, render.EnableClipping, cam.End3D
 	local SetupBones = ENTITY.SetupBones
 	local _EyePos = ENTITY.EyePos
+	local CurTime = CurTime
+	local FrameTime = FrameTime
+	local GetCycle = ENTITY.GetCycle
+	local DrawModel = ENTITY.DrawModel
+	local ManipulateBonePosition = ENTITY.ManipulateBonePosition
+	local ShouldDrawLocalPlayer = PLAYER.ShouldDrawLocalPlayer
+	local Alive = PLAYER.Alive
+	local GetRagdollEntity = PLAYER.GetRagdollEntity
+	local InVehicle = PLAYER.InVehicle
+	local GetObserverMode = PLAYER.GetObserverMode
 
 	MarkToRemove(ply.Body)
 	MarkToRemove(ply.Body_NoDraw)
 
+	local hook = hook
+	local math = math
 	local remap = math.Remap
 	local eyeAngles = Angle()
 	local suppress = false
@@ -194,11 +210,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		if bit.band(move:GetButtons(), IN_JUMP) ~= 0
 			and bit.band(move:GetOldButtons(), IN_JUMP) == 0
 			and ply:OnGround() then
-			JUMPING, onGround = true, false
-	
-			if IsFirstTimePredicted() then
-				JUMPING_ = not JUMPING_
-			end
+			JUMPING_, onGround= not JUMPING_, false
 		end
 	end)
 
@@ -206,9 +218,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		if not IsFirstTimePredicted() then
 			return
 		end
-	
-		JUMPING = nil
-	
+
 		local isOnGround = ply:OnGround()
 	
 		if onGround ~= isOnGround then
@@ -223,11 +233,11 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	local validBones = {}
 
 	local removeHead = function()
-		local legs = ply.Body
-		local h = LookupBone(legs, "ValveBiped.Bip01_Head1")
+		local body = ply.Body
+		local h = LookupBone(body, "ValveBiped.Bip01_Head1")
 
 		if h then
-			legs:ManipulateBonePosition(h, headPos)
+			ManipulateBonePosition(body, h, headPos)
 		end
 	end
 
@@ -242,7 +252,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			local mat = GetBoneMatrix(ent, i)
 
 			if mat then
-				if a[boneName] then
+				if playermodelbones_kv[boneName] then
 					SetTranslation(mat, goofyUhhPosition)
 
 					bonesSuccess[i] = true
@@ -289,11 +299,28 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		["ValveBiped.Bip01_Spine2"] = true,
 		["ValveBiped.Bip01_Spine4"] = true
 	}
+
 	local miscSpineBones = {}
 
 	local GetNumPoseParameters, GetPoseParameterRange = ENTITY.GetNumPoseParameters, ENTITY.GetPoseParameterRange
 	local GetPoseParameterName, GetSequence = ENTITY.GetPoseParameterName, ENTITY.GetSequence
 	local GetRenderAngles, SetRenderAngles = PLAYER.GetRenderAngles, PLAYER.SetRenderAngles
+
+	hook.Add("UpdateAnimation", "body.UpdateAnimation", function(pl)
+		if ply ~= pl
+			or not IsValid(ply.Body) then
+			return
+		end
+
+		local body = ply.Body
+		local seq = GetSequence(ply)
+
+		if body.Seq ~= seq then
+			body.Seq = seq
+
+			body:ResetSequence(seq)
+		end
+	end)
 
 	local buildBonePosition = function()
 		ply.Body.Callback = ply.Body:AddCallback("BuildBonePositions", function(ent, boneCount)
@@ -316,14 +343,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			SetPoseParameter(ply, "aim_pitch", 0)
 
 			SetupBones(ply)
-
-			local seq = GetSequence(ply)
-
-			if ent.Seq ~= seq then
-				ent.Seq = seq
-
-				ent:ResetSequence(seq)
-			end
 
 			local legsNoDraw = ply.Body_NoDraw
 
@@ -458,7 +477,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 	local faggot = Vector()
 	local SetParent, SetPos, SetAngles, SetCycle = ENTITY.SetParent, ENTITY.SetPos, ENTITY.SetAngles, ENTITY.SetCycle
-	local GetCycle = ENTITY.GetCycle
 
 	hook.Add("RenderScene", "firstperson.RenderScene", function(vec, ee)
 		if not CVar:GetBool() then
@@ -478,16 +496,16 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		ply.TimeToDuck = math.Clamp((ply.TimeToDuck or 0) + FT * 3.5 * (isDucking and 1 or -1), 0, 1)
 
 		local realEyeAngles = EyeAngles()
-		local legs = ply.Body
+		local body = ply.Body
 
-		suppress = ply:ShouldDrawLocalPlayer()
-			or not ply:Alive()
-			or not IsValid(ply.Body)
-			or not ply.Body.FullyLoaded
+		suppress = ShouldDrawLocalPlayer(ply)
+			or not Alive(ply)
+			or not IsValid(body)
+			or not body.FullyLoaded
 			or not IsValid(ply.Body_NoDraw)
-			or ply:GetRagdollEntity():IsValid()
-			or ply:InVehicle()
-			or ply:GetObserverMode() ~= 0
+			or GetRagdollEntity(ply):IsValid()
+			or InVehicle(ply)
+			or GetObserverMode(ply) ~= 0
 			or (ply.IsProne and ply:IsProne())
 			or realEyeAngles.p > 110
 			or realEyeAngles.p < -110
@@ -496,7 +514,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 		local CT = SysTime()
 
-		if limit_check < CT and IsValid(ply.Body) then
+		if limit_check < CT and IsValid(body) then
 			limit_check = CT + timeCache
 
 			if ply.Body.Callback then
@@ -509,22 +527,25 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				buildBonePosition()
 			end
 
-			ply.Body:SetSkin(ply:GetSkin())
-			ply.Body:SetMaterial(ply:GetMaterial())
+			body:SetSkin(ply:GetSkin())
+			body:SetMaterial(ply:GetMaterial())
 
 			if not suppress then
-				for k, v in ipairs(ply:GetBodyGroups()) do
+				local bodyGroups = ply:GetBodyGroups()
+				
+				for k = 1, #bodyGroups do
+					local v = bodyGroups[k]
 					local bg = ply:GetBodygroup(v.id)
 
-					ply.Body:SetBodygroup(v.id, bg)
+					body:SetBodygroup(v.id, bg)
 					ply.Body_NoDraw:SetBodygroup(v.id, bg)
 				end
 			end
 
 			validBones = {}
 
-			for i = 0, ply.Body:GetBoneCount() - 1 do
-				local boneName = GetBoneName(ply.Body, i)
+			for i = 0, body:GetBoneCount() - 1 do
+				local boneName = GetBoneName(body, i)
 				local isPelvis = find(boneName, "Pelvis", 1, true) or false
 
 				if find(boneName, "Spine", 1, true)
@@ -546,11 +567,11 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		local getView = GetViewOffset(ply)
 		local cycle = GetCycle(ply)
 
-		SetParent(ply.Body, ply)
-		SetPos(ply.Body, getPos)
-		SetAngles(ply.Body, eyeAngles)
-		SetPlaybackRate(ply.Body, GetPlaybackRate(ply))
-		SetCycle(ply.Body, cycle)
+		SetParent(body, ply)
+		SetPos(body, getPos)
+		SetAngles(body, eyeAngles)
+		SetPlaybackRate(body, GetPlaybackRate(ply))
+		SetCycle(body, cycle)
 	
 		local currentView = ply:GetCurrentViewOffset()
 		local forward = eyeAngles:Forward() * forwardDistance
@@ -577,11 +598,11 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			return
 		end
 
-		local current = ply.wardrobe or ply:GetModel()
+		local current = ply.wardrobe or GetModel(ply)
 
 		if not erroredModels[current]
 			and (not IsValid(ply.Body)
-			or ply.Body:GetModel() ~= current) then
+			or GetModel(ply.Body) ~= current) then
 			MarkToRemove(ply.Body)
 			MarkToRemove(ply.Body_NoDraw)
 
@@ -593,18 +614,35 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				return ply:GetPlayerColor()
 			end
 
-			local seq = ply.Body:LookupSequence("idle_all_01")
+			timer.Simple(0, function()
+				if not IsValid(ply.Body)
+					or not IsValid(ply.Body_NoDraw) then
+					return
+				end
 
-			if seq < 0 then
-				MarkToRemove(ply.Body)
+				local seq = ply.Body:LookupSequence("idle_all_01")
 
-				erroredModels[current] = true
+				if seq < 0 then
+					seq = ply.Body:LookupSequence("idle_all_02")
 
-				local CVar = GetConVar("gmod_language")
+					if seq < 0 then
+						seq = ply.Body:LookupSequence("idle1")
 
-				chat.AddText(Color(230, 30, 30), L"Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица.")
-				return
-			end
+						if seq < 0 then
+							MarkToRemove(ply.Body)
+
+							erroredModels[current] = true
+
+							local CVar = GetConVar("gmod_language")
+
+							chat.AddText(Color(230, 30, 30), L"Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица.")
+							return
+						end
+					end
+				end
+				
+				ply.Body_NoDraw:SetSequence(seq)
+			end)
 
 			ply.Body_NoDraw = ClientsideModel(current)
 			ply.Body_NoDraw:SetNoDraw(true)
@@ -613,19 +651,17 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				return ply:GetPlayerColor()
 			end
 
-			ply.Body_NoDraw:SetSequence(seq)
-
 			ply.Body.FullyLoaded, timeCacheBones = false, 0
 		end
 
 		if suppress
-			or ply:ShouldDrawLocalPlayer() then
+			or ShouldDrawLocalPlayer(ply) then
 			return
 		end
 
-		-- compat with Gmod Legs 3
+		local ply_Body = ply.Body
 
-		if hook.Run("ShouldDisableLegs", ply.Body) == true then
+		if hook.Run("ShouldDisableLegs", ply_Body) == true then
 			return
 		end
 
@@ -636,7 +672,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			return
 		end
 
-		local ret = hook.Run("PreDrawBody", ply.Body)
+		local ret = hook.Run("PreDrawBody", ply_Body)
 
 		if ret == false then
 			return
@@ -652,13 +688,13 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			local bEnabled = render_EnableClipping(true)
 			render_PushCustomClipPlane(vector_down, vector_down:Dot(finalPos))
 				render.SetColorModulation(color.r / 255, color.g / 255, color.b / 255)
-					ply.Body:DrawModel()
+					DrawModel(ply_Body)
 				render.SetColorModulation(m1, m2, m3)
 			render_PopCustomClipPlane()
 			render_EnableClipping(bEnabled)
 		cam_End3D()
 
-		hook.Run("PostDrawBody", ply.Body)
+		hook.Run("PostDrawBody", ply_Body)
 	end)
 
 	hook.Add("PreDrawBody", "cl_body.PreDrawBody_Compat", function()
