@@ -210,7 +210,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		if bit.band(move:GetButtons(), IN_JUMP) ~= 0
 			and bit.band(move:GetOldButtons(), IN_JUMP) == 0
 			and ply:OnGround() then
-			JUMPING_, onGround= not JUMPING_, false
+			JUMPING_, onGround = not JUMPING_, false
 		end
 	end)
 
@@ -305,22 +305,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	local GetNumPoseParameters, GetPoseParameterRange = ENTITY.GetNumPoseParameters, ENTITY.GetPoseParameterRange
 	local GetPoseParameterName, GetSequence = ENTITY.GetPoseParameterName, ENTITY.GetSequence
 	local GetRenderAngles, SetRenderAngles = PLAYER.GetRenderAngles, PLAYER.SetRenderAngles
-
-	hook.Add("UpdateAnimation", "body.UpdateAnimation", function(pl)
-		if ply ~= pl
-			or not IsValid(ply.Body) then
-			return
-		end
-
-		local body = ply.Body
-		local seq = GetSequence(ply)
-
-		if body.Seq ~= seq then
-			body.Seq = seq
-
-			body:ResetSequence(seq)
-		end
-	end)
 
 	local buildBonePosition = function()
 		ply.Body.Callback = ply.Body:AddCallback("BuildBonePositions", function(ent, boneCount)
