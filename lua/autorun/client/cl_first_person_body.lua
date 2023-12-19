@@ -262,7 +262,8 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 	hook.Add("CalcView", "body.CalcView", function(ply, vec, ang)
 		if not CVar_Vehicle:GetBool()
-			or not InVehicle(ply) then
+			or not InVehicle(ply)
+			or ply:GetVehicle():GetThirdPersonMode() then
 			return
 		end
 
