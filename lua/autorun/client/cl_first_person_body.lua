@@ -82,7 +82,7 @@ local bonesName = {}
 
 local CVar = CreateClientConVar("cl_gm_body", 1, true, false, L"Включить тело от 1-ого лица?", 0, 1)
 local CVar_Distance = CreateClientConVar("cl_gm_body_forward_distance", 17, true, false, L"Дистанция отдаления тела от центра позиции игрока", 8, 32)
-local CVar_Vehicle = CreateClientConVar("cl_gm_body_in_vehicle", 0, true, false, L"Включить тело от 1-ого лица в Т/С?", 0, 1)
+local CVar_Vehicle = CreateClientConVar("cl_gm_body_in_vehicle", 1, true, false, L"Включить тело от 1-ого лица в Т/С?", 0, 1)
 local forwardDistance = CVar_Distance:GetFloat()
 
 cvars.AddChangeCallback("cl_gm_body_forward_distance", function(_, _, newValue)
@@ -336,23 +336,27 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 			if h then
 				local getScale = inVeh and vector_origin or vector_normal
-				local pos = ply:GetBonePosition(h)
+				local mat = ent:GetBoneMatrix(h)
+
 				ManipulateBonePosition(ent, h, headPos)
 				ManipulateBoneScale(ent, h, getScale)
 
-				local recursive = GetChildBonesRecursive(ent, h)
+				if mat then
+					local pos = mat:GetTranslation()
+					local recursive = GetChildBonesRecursive(ent, h)
 
-				for key = 1, #recursive do
-					local bone = recursive[key]
+					for key = 1, #recursive do
+						local bone = recursive[key]
 
-					if bone then
-						ManipulateBoneScale(ent, bone, getScale)
+						if bone then
+							ManipulateBoneScale(ent, bone, getScale)
 
-						local mat2 = GetBoneMatrix(ent, bone)
+							local mat2 = GetBoneMatrix(ent, bone)
 
-						if mat2 then
-							SetTranslation(mat2, pos)
-							SetBoneMatrix(ent, bone, mat2)
+							if mat2 then
+								SetTranslation(mat2, pos)
+								SetBoneMatrix(ent, bone, mat2)
+							end
 						end
 					end
 				end
