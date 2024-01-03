@@ -421,6 +421,12 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 	local miscSpineBones = {}
 
+	local ik_foot = hook.GetTable()["PostPlayerDraw"]
+
+	if ik_foot then
+		ik_foot = ik_foot["IKFoot_PostPlayerDraw"]
+	end
+
 	local buildBonePosition = function()
 		ply.Body.Callback = ply.Body:AddCallback("BuildBonePositions", function(ent, boneCount)
 			if not CVar:GetBool() then
@@ -464,6 +470,12 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				SetPoseParameter(legsNoDraw, sPose, remap)
 				SetPoseParameter(ent, sPose, remap)
 			end
+
+			if ik_foot then
+				ik_foot(ply)
+			end
+
+			hook.Run("body.SetupBones", ent)
 
 			local bonesSuccess = {}
 			removeGarbage(bonesSuccess, boneCount)
