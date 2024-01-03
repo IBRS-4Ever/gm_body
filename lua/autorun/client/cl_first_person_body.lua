@@ -91,7 +91,7 @@ end, "cl_gm_legs_forward_distance")
 
 local defaultConVars = {
 	cl_gm_body = "1",
-	cl_gm_body_in_vehicle = "1",
+	cl_gm_body_in_vehicle = "0",
 	cl_gm_body_forward_distance = "17"
 }
 
@@ -444,6 +444,14 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			SetPoseParameter(ply, "body_yaw", 0)
 			SetPoseParameter(ply, "aim_yaw", 0)
 			SetPoseParameter(ply, "aim_pitch", 0)
+
+			local currentSequence = ply:GetSequence()
+
+			if ent.Seq ~= currentSequence then
+				ent.Seq = currentSequence
+
+				ply:ResetSequenceInfo()
+			end
 
 			SetupBones(ply)
 
