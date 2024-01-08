@@ -3,10 +3,18 @@ local _GetChildBonesRecursive
 local mdl = ""
 
 local ENTITY, PLAYER = FindMetaTable("Entity"), FindMetaTable("Player")
+local VECTOR = FindMetaTable("Vector")
+local DistToSqr = VECTOR.DistToSqr
+local Dot = VECTOR.Dot
 local GetModel = ENTITY.GetModel
 local GetChildBones = ENTITY.GetChildBones
 local next = next
 local pairs, ipairs = pairs, ipairs
+local hook_Run = hook.Run
+local render = render
+local render_GetRenderTarget = render.GetRenderTarget
+local render_SetColorModulation = render.SetColorModulation
+local render_GetColorModulation = render.GetColorModulation
 
 _GetChildBonesRecursive = function(ent, bone, src)
 	local t = src or {}
@@ -154,7 +162,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	end
 
 	local ply = ply or LocalPlayer()
-	local vec9999 = Vector(9999, 9999, 9999)
 
 	local GetBoneName = ENTITY.GetBoneName
 	local LookupBone = ENTITY.LookupBone
@@ -475,7 +482,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				ik_foot(ply)
 			end
 
-			hook.Run("body.SetupBones", ent)
+			hook_Run("body.SetupBones", ent)
 
 			local bonesSuccess = {}
 			removeGarbage(bonesSuccess, boneCount)
@@ -722,13 +729,29 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 	local vector_down = Vector(0, 0, -1)
 	local erroredModels = {}
+	local DestroyShadow = ENTITY.DestroyShadow
 
-	hook.Add("PreDrawViewModels", "firstperson.PreDrawViewModel", function(depth, skybox, isDraw3DSkybox)
+	local oldSeq, oldSequenceName = 0, ""
+	hook.Add("Think", "body.Think", function()
 		if not CVar:GetBool() then
 			return
 		end
 
 		local current = ply.wardrobe or GetModel(ply)
+		local currentSequence = ply:GetSequence()
+
+		if oldSeq ~= currentSequence then
+			oldSeq = currentSequence
+
+			local currentSequenceName = ply:GetSequenceName(currentSequence)
+
+			if currentSequenceName == oldSequenceName then
+				MarkToRemove(ply.Body)
+				MarkToRemove(ply.Body_NoDraw)
+			end
+
+			oldSequenceName = currentSequenceName
+		end
 
 		if not erroredModels[current]
 			and (not IsValid(ply.Body)
@@ -780,7 +803,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			ply.Body_NoDraw:SetModel(current)
 			ply.Body_NoDraw:SetNoDraw(true)
 			ply.Body_NoDraw:SetIK(false)
-			ply.Body:PhysicsDestroy()
+			ply.Body_NoDraw:PhysicsDestroy()
 			ply.Body_NoDraw.GetPlayerColor = function()
 				return ply:GetPlayerColor()
 			end
@@ -794,26 +817,26 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 				local ply_Body = ply.Body
 
-				ply_Body:DestroyShadow()
+				DestroyShadow(ply_Body)
 
 				local nodrawbody = ply.Body_NoDraw
 
 				if IsValid(nodrawbody) then
-					nodrawbody:DestroyShadow()
+					DestroyShadow(nodrawbody)
 				end
 
-				if hook.Run("ShouldDisableLegs", ply_Body) == true then
+				if hook_Run("ShouldDisableLegs", ply_Body) == true then
 					return
 				end
 
 				local shootPos, getPos = _EyePos(ply), GetPos(ply)
 
-				if render.GetRenderTarget()
-					and EyePos():DistToSqr(shootPos) > 1024 then
+				if render_GetRenderTarget()
+					and DistToSqr(EyePos(), shootPos) > 1024 then
 					return
 				end
 
-				local ret = hook.Run("PreDrawBody", ply_Body)
+				local ret = hook_Run("PreDrawBody", ply_Body)
 
 				if ret == false then
 					return
@@ -823,32 +846,32 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				getPos.z = 0
 
 				local color = ply:GetColor()
-				local m1, m2, m3 = render.GetColorModulation()
+				local m1, m2, m3 = render_GetColorModulation()
 
 				local bEnabled = false
 				local inVeh = InVehicle(ply)
 
 				if not inVeh then
 					cam_Start3D(finalPos + (shootPos - getPos), nil, nil, 0, 0, nil, nil, 0.5, -1)			
-						render_PushCustomClipPlane(vector_down, vector_down:Dot(finalPos))
+						render_PushCustomClipPlane(vector_down, Dot(vector_down, finalPos))
 						bEnabled = render_EnableClipping(true)
 				end
 
-						render.SetColorModulation(color.r / 255, color.g / 255, color.b / 255)
+						render_SetColorModulation(color.r / 255, color.g / 255, color.b / 255)
 							DrawModel(ply_Body)
-						render.SetColorModulation(m1, m2, m3)
+						render_SetColorModulation(m1, m2, m3)
 
 				if not inVeh then
 						render_PopCustomClipPlane()
 						render_EnableClipping(bEnabled)
 					cam_End3D()
 				end
+
+				hook_Run("PostDrawBody", ply_Body)
 			end
 
 			ply.Body.FullyLoaded, timeCacheBones = false, 0
 		end
-
-		hook.Run("PostDrawBody", ply_Body)
 	end)
 
 	hook.Add("PreDrawBody", "cl_body.PreDrawBody_Compat", function()
@@ -867,6 +890,6 @@ hook.Add("Think", "cl_legs.Load", function()
 	if IsValid(ply) then
 		hook.Remove("Think", "cl_legs.Load")
 
-		hook.Run("LocalPlayer_Validated", ply)
+		hook_Run("LocalPlayer_Validated", ply)
 	end
 end)
