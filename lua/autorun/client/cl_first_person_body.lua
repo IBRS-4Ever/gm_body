@@ -540,7 +540,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 											if boneName == "ValveBiped.Bip01_Pelvis" then
 												Legs_NoDraw_Angle.y = (math.NormalizeAngle(ply:EyeAngles().y - GetAngles(mat).y) + 90) / 1.25
 											elseif spineBones[boneName] then
-												this = 16 - (12 * ply.TimeToDuck)
+												this = 12 - (8 * ply.TimeToDuck)
 											elseif miscSpineBones[i] then
 												this = 5
 											end
@@ -576,7 +576,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 									if boneName == "ValveBiped.Bip01_Pelvis" then
 										Legs_NoDraw_Angle.y = (math.NormalizeAngle(ply:EyeAngles().y - GetAngles(mat).y) + 90) / 1.25
 									elseif spineBones[boneName] then
-										this = 16 - (12 * ply.TimeToDuck)
+										this = 12 - (8 * ply.TimeToDuck)
 									elseif miscSpineBones[i] then
 										this = 5
 									end
@@ -736,9 +736,11 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			MarkToRemove(ply.Body)
 			MarkToRemove(ply.Body_NoDraw)
 
-			ply.Body = ClientsideModel(current)
-			ply.Body:SetNoDraw(true)
+			ply.Body = ents.CreateClientProp(current)
+			ply.Body:SetModel(current)
+			ply.Body:DestroyShadow()
 			ply.Body:SetIK(false)
+			ply.Body:PhysicsDestroy()
 			SetupBones(ply.Body)
 			ply.Body.GetPlayerColor = function()
 				return ply:GetPlayerColor()
@@ -774,63 +776,68 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				ply.Body_NoDraw:SetSequence(seq)
 			end)
 
-			ply.Body_NoDraw = ClientsideModel(current)
+			ply.Body_NoDraw = ents.CreateClientProp(current)
+			ply.Body_NoDraw:SetModel(current)
 			ply.Body_NoDraw:SetNoDraw(true)
 			ply.Body_NoDraw:SetIK(false)
 			ply.Body_NoDraw.GetPlayerColor = function()
 				return ply:GetPlayerColor()
 			end
 
+			ply.Body.RenderOverride = function(self)
+				if suppress
+					or ShouldDrawLocalPlayer(ply) then
+					return
+				end
+
+				local ply_Body = ply.Body
+
+				ply_Body:DestroyShadow()
+
+				if hook.Run("ShouldDisableLegs", ply_Body) == true then
+					return
+				end
+
+				local shootPos, getPos = _EyePos(ply), GetPos(ply)
+
+				if render.GetRenderTarget()
+					and EyePos():DistToSqr(shootPos) > 1024 then
+					return
+				end
+
+				local ret = hook.Run("PreDrawBody", ply_Body)
+
+				if ret == false then
+					return
+				end
+
+				shootPos.z = 0
+				getPos.z = 0
+
+				local color = ply:GetColor()
+				local m1, m2, m3 = render.GetColorModulation()
+
+				local bEnabled = false
+				local inVeh = InVehicle(ply)
+
+				if not inVeh then
+					cam_Start3D(finalPos + (shootPos - getPos), nil, nil, 0, 0, nil, nil, 0.5, -1)			
+						render_PushCustomClipPlane(vector_down, vector_down:Dot(finalPos))
+						bEnabled = render_EnableClipping(true)
+				end
+
+						render.SetColorModulation(color.r / 255, color.g / 255, color.b / 255)
+							DrawModel(ply_Body)
+						render.SetColorModulation(m1, m2, m3)
+
+				if not inVeh then
+						render_PopCustomClipPlane()
+						render_EnableClipping(bEnabled)
+					cam_End3D()
+				end
+			end
+
 			ply.Body.FullyLoaded, timeCacheBones = false, 0
-		end
-
-		if suppress
-			or ShouldDrawLocalPlayer(ply) then
-			return
-		end
-
-		local ply_Body = ply.Body
-
-		if hook.Run("ShouldDisableLegs", ply_Body) == true then
-			return
-		end
-
-		local shootPos, getPos = _EyePos(ply), GetPos(ply)
-
-		if render.GetRenderTarget()
-			and EyePos():DistToSqr(shootPos) > 1024 then
-			return
-		end
-
-		local ret = hook.Run("PreDrawBody", ply_Body)
-
-		if ret == false then
-			return
-		end
-
-		shootPos.z = 0
-		getPos.z = 0
-
-		local color = ply:GetColor()
-		local m1, m2, m3 = render.GetColorModulation()
-
-		local bEnabled = false
-		local inVeh = InVehicle(ply)
-
-		if not inVeh then
-			cam_Start3D(finalPos + (shootPos - getPos), nil, nil, 0, 0, nil, nil, 0.5, -1)			
-				render_PushCustomClipPlane(vector_down, vector_down:Dot(finalPos))
-				bEnabled = render_EnableClipping(true)
-		end
-
-				render.SetColorModulation(color.r / 255, color.g / 255, color.b / 255)
-					DrawModel(ply_Body)
-				render.SetColorModulation(m1, m2, m3)
-
-		if not inVeh then
-				render_PopCustomClipPlane()
-				render_EnableClipping(bEnabled)
-			cam_End3D()
 		end
 
 		hook.Run("PostDrawBody", ply_Body)
