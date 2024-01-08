@@ -780,13 +780,14 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			ply.Body_NoDraw:SetModel(current)
 			ply.Body_NoDraw:SetNoDraw(true)
 			ply.Body_NoDraw:SetIK(false)
-			ply.Body_NoDraw:PhysicsDestroy()
+			ply.Body:PhysicsDestroy()
 			ply.Body_NoDraw.GetPlayerColor = function()
 				return ply:GetPlayerColor()
 			end
 
 			ply.Body.RenderOverride = function(self)
-				if suppress
+				if not CVar:GetBool()
+					or suppress
 					or ShouldDrawLocalPlayer(ply) then
 					return
 				end
