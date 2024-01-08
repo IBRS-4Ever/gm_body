@@ -780,7 +780,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			ply.Body_NoDraw:SetModel(current)
 			ply.Body_NoDraw:SetNoDraw(true)
 			ply.Body_NoDraw:SetIK(false)
-			ply.Body:PhysicsDestroy()
+			ply.Body_NoDraw:PhysicsDestroy()
 			ply.Body_NoDraw.GetPlayerColor = function()
 				return ply:GetPlayerColor()
 			end
