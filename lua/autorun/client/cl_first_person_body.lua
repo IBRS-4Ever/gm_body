@@ -780,6 +780,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			ply.Body_NoDraw:SetModel(current)
 			ply.Body_NoDraw:SetNoDraw(true)
 			ply.Body_NoDraw:SetIK(false)
+			ply.Body:PhysicsDestroy()
 			ply.Body_NoDraw.GetPlayerColor = function()
 				return ply:GetPlayerColor()
 			end
@@ -793,6 +794,12 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				local ply_Body = ply.Body
 
 				ply_Body:DestroyShadow()
+
+				local nodrawbody = ply.Body_NoDraw
+
+				if IsValid(nodrawbody) then
+					nodrawbody:DestroyShadow()
+				end
 
 				if hook.Run("ShouldDisableLegs", ply_Body) == true then
 					return
