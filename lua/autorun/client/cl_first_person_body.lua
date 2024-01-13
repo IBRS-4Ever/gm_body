@@ -318,6 +318,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		local ent = ply.Body
 		local goofyUhhPosition = GetPos(ply) + GetViewOffset(ply) - eyeAngles:Forward() * 32
 		local inVeh = InVehicle(ply)
+		local forward = eyeAngles:Forward() * forwardDistance
 
 		if CVar_Vehicle:GetBool()
 			and inVeh then
@@ -407,7 +408,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 						local mat2 = GetBoneMatrix(ply, bone)
 
 						if mat2 then
-							SetTranslation(mat, GetTranslation(mat2))
+							SetTranslation(mat, GetTranslation(mat2) - forward)
 							SetAngles(mat, GetAngles(mat2))
 						end
 					end
@@ -616,11 +617,9 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			return
 		end
 
-		eyePos = vec
 		eyeAngles = ply:EyeAngles()
 		eyeAngles.p = 0
 
-		local onGround = OnGround(ply)
 		isDucking = bit.band(ply:GetFlags(), FL_ANIMDUCKING) > 0
 			and onGround
 
@@ -714,7 +713,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		SetParent(ply.Body_NoDraw, ply)
 
 		if not InVehicle(ply) then
-			SetPos(ply.Body_NoDraw, getPos)
+			SetPos(ply.Body_NoDraw, getPos - forward)
 			SetAngles(ply.Body_NoDraw, eyeAngles - Legs_NoDraw_Angle)
 			SetAngles(body, eyeAngles)
 		end
@@ -723,15 +722,14 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 		finalPos = getPos
 			+ currentView
-			+ forward
 			+ (faggot * ply.TimeToFaggot)
 	end)
 
 	local vector_down = Vector(0, 0, -1)
 	local erroredModels = {}
 	local DestroyShadow = ENTITY.DestroyShadow
-
 	local oldSeq, oldSequenceName = 0, ""
+
 	hook.Add("Think", "body.Think", function()
 		if not CVar:GetBool() then
 			return
