@@ -807,12 +807,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			end
 
 			ply.Body.RenderOverride = function(self)
-				if not CVar:GetBool()
-					or suppress
-					or ShouldDrawLocalPlayer(ply) then
-					return
-				end
-
 				local ply_Body = ply.Body
 
 				DestroyShadow(ply_Body)
@@ -821,6 +815,13 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 				if IsValid(nodrawbody) then
 					DestroyShadow(nodrawbody)
+					nodrawbody:SetNoDraw(true)
+				end
+
+				if not CVar:GetBool()
+					or suppress
+					or ShouldDrawLocalPlayer(ply) then
+					return
 				end
 
 				if hook_Run("ShouldDisableLegs", ply_Body) == true then
