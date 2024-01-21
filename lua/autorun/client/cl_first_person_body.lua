@@ -807,10 +807,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			end
 
 			ply.Body.RenderOverride = function(self, a)
-				if a ~= 1 then
-					return
-				end
-
 				local ply_Body = ply.Body
 
 				DestroyShadow(ply_Body)
