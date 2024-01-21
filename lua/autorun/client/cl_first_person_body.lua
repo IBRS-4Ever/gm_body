@@ -806,7 +806,11 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				return ply:GetPlayerColor()
 			end
 
-			ply.Body.RenderOverride = function(self)
+			ply.Body.RenderOverride = function(self, a)
+				if a ~= 1 then
+					return
+				end
+
 				local ply_Body = ply.Body
 
 				DestroyShadow(ply_Body)
@@ -828,7 +832,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 					return
 				end
 
-				local shootPos, getPos = _EyePos(ply), GetPos(ply)
+				local shootPos = _EyePos(ply)
 
 				if render_GetRenderTarget()
 					and DistToSqr(EyePos(), shootPos) > 1024 then
@@ -841,9 +845,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 					return
 				end
 
-				shootPos.z = 0
-				getPos.z = 0
-
 				local color = ply:GetColor()
 				local m1, m2, m3 = render_GetColorModulation()
 
@@ -851,7 +852,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				local inVeh = InVehicle(ply)
 
 				if not inVeh then
-					cam_Start3D(finalPos + (shootPos - getPos), nil, nil, 0, 0, nil, nil, 0.5, -1)			
+					cam_Start3D(finalPos, nil, nil, nil, nil, nil, nil, 1, -1)			
 						render_PushCustomClipPlane(vector_down, Dot(vector_down, finalPos))
 						bEnabled = render_EnableClipping(true)
 				end
