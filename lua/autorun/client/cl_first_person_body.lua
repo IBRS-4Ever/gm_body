@@ -852,7 +852,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				local inVeh = InVehicle(ply)
 
 				if not inVeh then
-					cam_Start3D(finalPos, nil, nil, nil, nil, nil, nil, 1, -1)			
+					cam_Start3D(finalPos, nil, nil, nil, nil, nil, nil, 0.5, -1)			
 						render_PushCustomClipPlane(vector_down, Dot(vector_down, finalPos))
 						bEnabled = render_EnableClipping(true)
 				end
