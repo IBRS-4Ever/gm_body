@@ -847,8 +847,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 				local color = ply:GetColor()
 				local m1, m2, m3 = render_GetColorModulation()
-
-				local bEnabled = false
 				local inVeh = InVehicle(ply)
 
 				if not inVeh then
