@@ -848,9 +848,12 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				local color = ply:GetColor()
 				local m1, m2, m3 = render_GetColorModulation()
 				local inVeh = InVehicle(ply)
+				local bEnabled = false
 
 				if not inVeh then
-					cam_Start3D(finalPos, nil, nil, nil, nil, nil, nil, 0.5, -1)			
+					cam_Start3D(finalPos, nil, nil, nil, nil, nil, nil, 0.5, -1)		
+						render_PushCustomClipPlane(vector_down, Dot(vector_down, finalPos))
+						bEnabled = render_EnableClipping(true)					
 				end
 
 					render_SetColorModulation(color.r / 255, color.g / 255, color.b / 255)
@@ -858,6 +861,8 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 					render_SetColorModulation(m1, m2, m3)
 
 				if not inVeh then
+						render_PopCustomClipPlane()
+						render_EnableClipping(bEnabled)
 					cam_End3D()
 				end
 
