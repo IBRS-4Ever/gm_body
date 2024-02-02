@@ -51,24 +51,31 @@ local translation = {
 	["ru"] = {
 		["Включить тело от 1-ого лица?"] = "Включить тело от 1-ого лица?",
 		["Включить тело от 1-ого лица в Т/С?"] = "Включить тело от 1-ого лица в Т/С?",
+		["Включить тень тела от 1-ого лица?"] = "Включить тень тела от 1-ого лица? (не работает с cl_drawownshadow)",
 		["Дистанция отдаления тела от центра позиции игрока"] = "Дистанция отдаления тела от центра позиции игрока",
 		["Настройка тела от 1 лица"] = "Настройка тела от 1 лица",
-		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."
+		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица.",
+		["Перезапустить тело"] = "Перезапустить тело"
 	},
 
 	["en"] = {
 		["Включить тело от 1-ого лица?"] = "Enable body in firstperson camera?",
 		["Включить тело от 1-ого лица в Т/С?"] = "Enable body in vehicle?",
+		["Включить тень тела от 1-ого лица?"] = "Enable body shadow? (don't work with cl_drawownshadow)",
 		["Дистанция отдаления тела от центра позиции игрока"] = "Distance of the body from the center of the player's position",
 		["Настройка тела от 1 лица"] = "Firstperson body settings",
-		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "The current model doesn't have a sequences, please choose another model."
+		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "The current model doesn't have a sequences, please choose another model.",
+		["Перезапустить тело"] = "Refresh"
 	},
 
 	["tr"] = {
 		["Включить тело от 1-ого лица?"] = "Birinci şahıs kamerada beden etkinleştirilsin mi?",
+		["Включить тело от 1-ого лица в Т/С?"] = "Enable body in vehicle?",
+		["Включить тень тела от 1-ого лица?"] = "Enable body shadow? (don't work with cl_drawownshadow)",
 		["Дистанция отдаления тела от центра позиции игрока"] = "Bedenin oyuncunun pozisyonunun merkezinden uzaklığı",
 		["Настройка тела от 1 лица"] = "Birinci şahıs beden ayarları",
-		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "Mevcut modelde bir dizi yok, lütfen başka bir model seçin."
+		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "Mevcut modelde bir dizi yok, lütfen başka bir model seçin.",
+		["Перезапустить тело"] = "Refresh"
 	}
 }
 
@@ -82,7 +89,7 @@ local L = function(str)
 
 	return getTranslation and getTranslation[str]
 		or translation["en"][str]
-		or "???"
+		or str
 end
 
 local bones = {}
@@ -91,6 +98,7 @@ local bonesName = {}
 local CVar = CreateClientConVar("cl_gm_body", 1, true, false, L"Включить тело от 1-ого лица?", 0, 1)
 local CVar_Distance = CreateClientConVar("cl_gm_body_forward_distance", 17, true, false, L"Дистанция отдаления тела от центра позиции игрока", 8, 32)
 local CVar_Vehicle = CreateClientConVar("cl_gm_body_in_vehicle", 0, true, false, L"Включить тело от 1-ого лица в Т/С?", 0, 1)
+local CVar_Shadow = CreateClientConVar("cl_gm_body_enable_shadow", 0, true, false, L"Включить тень тела от 1-ого лица?", 0, 1)
 local forwardDistance = CVar_Distance:GetFloat()
 
 cvars.AddChangeCallback("cl_gm_body_forward_distance", function(_, _, newValue)
@@ -100,7 +108,8 @@ end, "cl_gm_legs_forward_distance")
 local defaultConVars = {
 	cl_gm_body = "1",
 	cl_gm_body_in_vehicle = "0",
-	cl_gm_body_forward_distance = "17"
+	cl_gm_body_forward_distance = "17",
+	cl_gm_body_enable_shadow = "0"
 }
 
 hook.Add("PopulateToolMenu", "body.Utilities", function()
@@ -116,7 +125,9 @@ hook.Add("PopulateToolMenu", "body.Utilities", function()
 
 		panel:CheckBox(L"Включить тело от 1-ого лица?", "cl_gm_body")
 		panel:CheckBox(L"Включить тело от 1-ого лица в Т/С?", "cl_gm_body_in_vehicle")
+		panel:CheckBox(L"Включить тень тела от 1-ого лица?", "cl_gm_body_enable_shadow")
 		panel:NumSlider(L"Дистанция отдаления тела от центра позиции игрока", "cl_gm_body_forward_distance", 8, 32)
+		panel:Button(L"Перезапустить тело", "cl_gm_body_refresh", 8, 32)
 	end)
 end)
 
@@ -197,6 +208,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 	MarkToRemove(ply.Body)
 	MarkToRemove(ply.Body_NoDraw)
+	MarkToRemove(ply.Body_Shadow)
 
 	local hook = hook
 	local math = math
@@ -435,6 +447,49 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		ik_foot = ik_foot["IKFoot_PostPlayerDraw"]
 	end
 
+	local faggot = Vector()
+	local body_is_rendering = true
+
+	local shadow_buildBonePosition = function()
+		ply.Body_Shadow.Callback = ply.Body_Shadow:AddCallback("BuildBonePositions", function(ent, boneCount)
+			local ang = GetRenderAngles(ply)
+			local forward = eyeAngles:Forward() * forwardDistance + (faggot * ply.TimeToFaggot)
+			SetRenderAngles(ply, eyeAngles)
+			a1, b1, d1 = GetPoseParameter(ply, "body_yaw", 0), GetPoseParameter(ply, "aim_yaw", 0), GetPoseParameter(ply, "head_yaw", 0)
+
+			SetPoseParameter(ply, "body_yaw", 0)
+			SetPoseParameter(ply, "aim_yaw", 0)
+			SetPoseParameter(ply, "head_yaw", 0)
+
+			SetupBones(ply)
+
+			for i = 0, boneCount - 1 do
+				local boneName = GetBoneName(ent, i)
+				local lookupBone = LookupBone(ply, boneName)
+
+				if lookupBone then
+					local mat = GetBoneMatrix(ply, lookupBone)
+
+					if mat then
+						local mat2 = GetBoneMatrix(ent, i)
+
+						if mat2 then
+							SetTranslation(mat2, GetTranslation(mat) - forward)
+							SetAngles(mat2, GetAngles(mat))
+							SetBoneMatrix(ent, i, mat2)
+						end
+					end
+				end
+			end
+
+			SetRenderAngles(ply, ang)
+
+			SetPoseParameter(ply, "body_yaw", a1)
+			SetPoseParameter(ply, "aim_yaw", b1)
+			SetPoseParameter(ply, "head_yaw", d1)
+		end)
+	end
+
 	local buildBonePosition = function()
 		ply.Body.Callback = ply.Body:AddCallback("BuildBonePositions", function(ent, boneCount)
 			if not CVar:GetBool() then
@@ -608,9 +663,52 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		ply.Body.FullyLoaded = true
 	end
 
-	local faggot = Vector()
 	local SetParent, SetPos, SetAngles, SetCycle = ENTITY.SetParent, ENTITY.SetPos, ENTITY.SetAngles, ENTITY.SetCycle
+	local CreateShadow, DestroyShadow, SetRenderBounds = ENTITY.CreateShadow, ENTITY.DestroyShadow, ENTITY.SetRenderBounds
 	local vrmod = vrmod
+	local mins_render, maxs_render = Vector(-48, -48, 0), Vector(48, 48, 0)
+
+	hook.Add("RenderScene", "firstperson_shadow.RenderScene", function(vec, ee)
+		local ply_Body = ply.Body
+
+		if IsValid(ply_Body) then
+			DestroyShadow(ply_Body)
+
+			local nodrawbody = ply.Body_NoDraw
+
+			if IsValid(nodrawbody) then
+				DestroyShadow(nodrawbody)
+				nodrawbody:SetNoDraw(true)
+			end
+		end
+
+		local self = ply.Body_Shadow
+
+		if not IsValid(self) then
+			return
+		end
+
+		if suppress
+			or not CVar:GetBool()
+			or ShouldDrawLocalPlayer(ply)
+			or not body_is_rendering
+			or not CVar_Shadow:GetBool() then
+			DestroyShadow(self)
+		elseif faggot and ply.TimeToFaggot then
+			CreateShadow(self)
+
+			local self = ply.Body_Shadow
+            local pos = (faggot * ply.TimeToFaggot)
+			SetPos(self, GetPos(ply) - pos)
+			SetAngles(self, eyeAngles)
+			SetParent(self, ply)
+
+			local _, size2 = self:GetModelRenderBounds()
+			maxs_render.z = size2.z * 1.25 + pos.z
+
+			SetRenderBounds(self, mins_render, maxs_render)
+		end
+	end)
 
 	hook.Add("RenderScene", "firstperson.RenderScene", function(vec, ee)
 		if not CVar:GetBool() then
@@ -635,6 +733,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			or not Alive(ply)
 			or (inVeh and not CVar_Vehicle:GetBool())
 			or not IsValid(body)
+			or not IsValid(ply.Body_Shadow)
 			or not body.FullyLoaded
 			or not IsValid(ply.Body_NoDraw)
 			or GetRagdollEntity(ply):IsValid()
@@ -647,7 +746,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 		local CT = SysTime()
 
-		if limit_check < CT and IsValid(body) then
+		if limit_check < CT and IsValid(body) and IsValid(ply.Body_Shadow) then
 			limit_check = CT + timeCache
 
 			if ply.Body.Callback then
@@ -658,6 +757,16 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				end
 			else
 				buildBonePosition()
+			end
+
+			if ply.Body_Shadow.Callback then
+				local getCallbacks = ply.Body_Shadow:GetCallbacks("BuildBonePositions")
+
+				if not getCallbacks[ply.Body_Shadow.Callback] then
+					shadow_buildBonePosition()
+				end
+			else
+				shadow_buildBonePosition()
 			end
 
 			body:SetSkin(ply:GetSkin())
@@ -730,6 +839,15 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	local DestroyShadow = ENTITY.DestroyShadow
 	local oldSeq, oldSequenceName = 0, ""
 
+	concommand.Add("cl_gm_body_refresh", function()
+		MarkToRemove(ply.Body)
+		MarkToRemove(ply.Body_NoDraw)
+	end)
+
+	local suppress_render = {
+		[16777216] = true, [134217728] = true, [1073741824] = true, [2147483648] = true
+	}
+
 	hook.Add("Think", "body.Think", function()
 		if not CVar:GetBool() then
 			return
@@ -746,6 +864,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			if currentSequenceName == oldSequenceName then
 				MarkToRemove(ply.Body)
 				MarkToRemove(ply.Body_NoDraw)
+				MarkToRemove(ply.Body_Shadow)
 			end
 
 			oldSequenceName = currentSequenceName
@@ -756,6 +875,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			or GetModel(ply.Body) ~= current) then
 			MarkToRemove(ply.Body)
 			MarkToRemove(ply.Body_NoDraw)
+			MarkToRemove(ply.Body_Shadow)
 
 			ply.Body = ents.CreateClientProp(current)
 			ply.Body:SetModel(current)
@@ -806,17 +926,12 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				return ply:GetPlayerColor()
 			end
 
-			ply.Body.RenderOverride = function(self, a)
-				local ply_Body = ply.Body
-
-				DestroyShadow(ply_Body)
-
-				local nodrawbody = ply.Body_NoDraw
-
-				if IsValid(nodrawbody) then
-					DestroyShadow(nodrawbody)
-					nodrawbody:SetNoDraw(true)
+			ply.Body.RenderOverride = function(self, flag)
+				if bit.band(flag, STUDIO_SHADOWDEPTHTEXTURE) ~= 0 then
+					return
 				end
+
+				local ply_Body = ply.Body
 
 				if not CVar:GetBool()
 					or suppress
@@ -825,8 +940,12 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				end
 
 				if hook_Run("ShouldDisableLegs", ply_Body) == true then
+					body_is_rendering = false
+
 					return
 				end
+
+				body_is_rendering = true
 
 				local shootPos = _EyePos(ply)
 
@@ -864,6 +983,12 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 				hook_Run("PostDrawBody", ply_Body)
 			end
+
+			ply.Body_Shadow = ents.CreateClientProp(current)
+			ply.Body_Shadow:SetModel(current)
+			ply.Body_Shadow:SetIK(false)
+			ply.Body_Shadow:PhysicsDestroy()
+			ply.Body_Shadow.RenderOverride = function() end
 
 			ply.Body.FullyLoaded, timeCacheBones = false, 0
 		end
