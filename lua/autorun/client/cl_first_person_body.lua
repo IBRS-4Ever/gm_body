@@ -453,13 +453,14 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	end
 
 	local body_is_rendering = true
+	local angle_render = Angle()
 
 	local shadow_buildBonePosition = function()
 		ply.Body_Shadow.Callback = ply.Body_Shadow:AddCallback("BuildBonePositions", function(ent, boneCount)
 			local ang = GetRenderAngles(ply)
 			local forward = eyeAngles:Forward() * forwardDistance + vector_fixCrouch
 
-			SetRenderAngles(ply, eyeAngles)
+			SetRenderAngles(ply, angle_render)
 			a1, b1, d1 = GetPoseParameter(ply, "body_yaw", 0), GetPoseParameter(ply, "aim_yaw", 0), GetPoseParameter(ply, "head_yaw", 0)
 
 			SetPoseParameter(ply, "body_yaw", 0)
@@ -510,7 +511,11 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			local inVehicle = InVehicle(ply)
 
 			if not inVehicle then
-				SetRenderAngles(ply, eyeAngles)
+				local len = math.Clamp(ply:GetVelocity():LengthSqr() / 20000, 0, 0.5)
+				local diff = eyeAngles - ang
+				diff.y = math_NormalizeAngle(diff.y)
+				angle_render = ang + (diff * (1 - len))
+				SetRenderAngles(ply, angle_render)
 			end
 
 			a1, b1, c1 = GetPoseParameter(ply, "body_yaw", 0), GetPoseParameter(ply, "aim_yaw", 0), GetPoseParameter(ply, "aim_pitch", 0)
