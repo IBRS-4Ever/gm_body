@@ -15,6 +15,7 @@ local render = render
 local render_GetRenderTarget = render.GetRenderTarget
 local render_SetColorModulation = render.SetColorModulation
 local render_GetColorModulation = render.GetColorModulation
+local math_NormalizeAngle = math.NormalizeAngle
 
 _GetChildBonesRecursive = function(ent, bone, src)
 	local t = src or {}
@@ -219,7 +220,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	local isDucking = false
 	local finalPos = Vector()
 	local limit_check = 0
-	local timeCache = 0.1
+	local timeCache = 0.15
 	local vector_origin = Vector(0, 0, 0)
 
 	local find, insert = string.find, table.insert
@@ -234,6 +235,19 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 	local onGround = true
 	local JUMPING_ = false
+	local vehicle_steer,d1,e1 = 0, 0, 0
+	local GetNumPoseParameters, GetPoseParameterRange = ENTITY.GetNumPoseParameters, ENTITY.GetPoseParameterRange
+	local GetPoseParameterName, GetSequence = ENTITY.GetPoseParameterName, ENTITY.GetSequence
+	local GetRenderAngles, SetRenderAngles = PLAYER.GetRenderAngles, PLAYER.SetRenderAngles
+	local faggot = Vector()
+	local GetPos, GetViewOffset = ENTITY.GetPos, PLAYER.GetViewOffset
+	local vector_normal = Vector(1, 1, 1)
+	local vector_fixCrouch = Vector()
+	local CreateShadow, DestroyShadow, SetRenderBounds = ENTITY.CreateShadow, ENTITY.DestroyShadow, ENTITY.SetRenderBounds
+	local vrmod = vrmod
+	local mins_render, maxs_render = Vector(-48, -48, 0), Vector(48, 48, 0)
+	local eyePos = Vector()
+	local ply_EyePos = Vector()
 
 	hook.Add("SetupMove", "legs.SetupMove", function(ply, move)
 		if not IsFirstTimePredicted() then
@@ -273,11 +287,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			ManipulateBonePosition(body, h, headPos)
 		end
 	end
-
-	local vehicle_steer,d1,e1 = 0, 0, 0
-	local GetNumPoseParameters, GetPoseParameterRange = ENTITY.GetNumPoseParameters, ENTITY.GetPoseParameterRange
-	local GetPoseParameterName, GetSequence = ENTITY.GetPoseParameterName, ENTITY.GetSequence
-	local GetRenderAngles, SetRenderAngles = PLAYER.GetRenderAngles, PLAYER.SetRenderAngles
 
 	hook.Add("CalcView", "body.CalcView", function(ply, vec, ang)
 		if not CVar_Vehicle:GetBool()
@@ -322,9 +331,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		SetPoseParameter(ply, "aim_yaw", b1)
 		SetPoseParameter(ply, "aim_pitch", c1)
 	end)
-
-	local GetPos, GetViewOffset = ENTITY.GetPos, PLAYER.GetViewOffset
-	local vector_normal = Vector(1, 1, 1)
 
 	local removeGarbage = function(bonesSuccess, boneCount)
 		local ent = ply.Body
@@ -420,7 +426,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 						local mat2 = GetBoneMatrix(ply, bone)
 
 						if mat2 then
-							SetTranslation(mat, GetTranslation(mat2) - forward)
+							SetTranslation(mat, GetTranslation(mat2) - forward - vector_fixCrouch)
 							SetAngles(mat, GetAngles(mat2))
 						end
 					end
@@ -440,20 +446,19 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	}
 
 	local miscSpineBones = {}
-
 	local ik_foot = hook.GetTable()["PostPlayerDraw"]
 
 	if ik_foot then
 		ik_foot = ik_foot["IKFoot_PostPlayerDraw"]
 	end
 
-	local faggot = Vector()
 	local body_is_rendering = true
 
 	local shadow_buildBonePosition = function()
 		ply.Body_Shadow.Callback = ply.Body_Shadow:AddCallback("BuildBonePositions", function(ent, boneCount)
 			local ang = GetRenderAngles(ply)
-			local forward = eyeAngles:Forward() * forwardDistance + (faggot * ply.TimeToFaggot)
+			local forward = eyeAngles:Forward() * forwardDistance + vector_fixCrouch
+
 			SetRenderAngles(ply, eyeAngles)
 			a1, b1, d1 = GetPoseParameter(ply, "body_yaw", 0), GetPoseParameter(ply, "aim_yaw", 0), GetPoseParameter(ply, "head_yaw", 0)
 
@@ -598,10 +603,10 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 										local mat2 = GetBoneMatrix(legsNoDraw, b)
 
 										if mat2 then
-											local matTR, mat2TR = GetTranslation(mat), GetTranslation(mat2)
+											local matTR, mat2TR = GetTranslation(mat), GetTranslation(mat2) - vector_fixCrouch
 
 											if boneName == "ValveBiped.Bip01_Pelvis" then
-												Legs_NoDraw_Angle.y = (math.NormalizeAngle(ply:EyeAngles().y - GetAngles(mat).y) + 90) / 1.25
+												Legs_NoDraw_Angle.y = (math.NormalizeAngle(eyeAngles.y - GetAngles(mat).y) + 90) / 1.25
 											elseif spineBones[boneName] then
 												this = 12 - (8 * ply.TimeToDuck)
 											elseif miscSpineBones[i] then
@@ -637,14 +642,14 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 								if mat2 then
 									if boneName == "ValveBiped.Bip01_Pelvis" then
-										Legs_NoDraw_Angle.y = (math.NormalizeAngle(ply:EyeAngles().y - GetAngles(mat).y) + 90) / 1.25
+										Legs_NoDraw_Angle.y = (math_NormalizeAngle(eyeAngles.y - GetAngles(mat).y) + 90) / 1.25
 									elseif spineBones[boneName] then
 										this = 12 - (8 * ply.TimeToDuck)
 									elseif miscSpineBones[i] then
 										this = 5
 									end
 
-									local matTR, mat2TR = GetTranslation(mat), GetTranslation(mat2)
+									local matTR, mat2TR = GetTranslation(mat), GetTranslation(mat2) - vector_fixCrouch
 
 									SetTranslation(mat, mat2TR - (mat2TR - matTR) / this)
 									this = cacheThis
@@ -664,9 +669,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	end
 
 	local SetParent, SetPos, SetAngles, SetCycle = ENTITY.SetParent, ENTITY.SetPos, ENTITY.SetAngles, ENTITY.SetCycle
-	local CreateShadow, DestroyShadow, SetRenderBounds = ENTITY.CreateShadow, ENTITY.DestroyShadow, ENTITY.SetRenderBounds
-	local vrmod = vrmod
-	local mins_render, maxs_render = Vector(-48, -48, 0), Vector(48, 48, 0)
 
 	hook.Add("RenderScene", "firstperson_shadow.RenderScene", function(vec, ee)
 		local ply_Body = ply.Body
@@ -698,13 +700,12 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			CreateShadow(self)
 
 			local self = ply.Body_Shadow
-            local pos = (faggot * ply.TimeToFaggot)
-			SetPos(self, GetPos(ply) - pos)
+
+			SetPos(self, ply_EyePos)
 			SetAngles(self, eyeAngles)
-			SetParent(self, ply)
 
 			local _, size2 = self:GetModelRenderBounds()
-			maxs_render.z = size2.z * 1.25 + pos.z
+			maxs_render.z = size2.z * 1.25 + vector_fixCrouch.z
 
 			SetRenderBounds(self, mins_render, maxs_render)
 		end
@@ -715,6 +716,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			return
 		end
 
+		eyePos, ply_EyePos = vec, ply:EyePos()
 		eyeAngles = ply:EyeAngles()
 		eyeAngles.p = 0
 
@@ -816,10 +818,9 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	
 		local currentView = GetCurrentViewOffset(ply)
 		local forward = eyeAngles:Forward() * forwardDistance
+		local onGround = ply:OnGround()
 
 		ply.TimeToFaggot = math.Clamp((ply.TimeToFaggot or 0) + FT * (Crouching(ply) and 4 or 10000) * (not onGround and 1 or -1), 0, 1)
-
-		SetParent(ply.Body_NoDraw, ply)
 
 		if not InVehicle(ply) then
 			SetPos(ply.Body_NoDraw, getPos - forward)
@@ -828,10 +829,11 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		end
 
 		faggot = (not onGround or limitJump > CurTime()) and getView - currentView or vector_origin
+		vector_fixCrouch = (faggot * ply.TimeToFaggot)
 
 		finalPos = getPos
 			+ currentView
-			+ (faggot * ply.TimeToFaggot)
+			+ vector_fixCrouch
 	end)
 
 	local vector_down = Vector(0, 0, -1)
@@ -843,10 +845,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 		MarkToRemove(ply.Body)
 		MarkToRemove(ply.Body_NoDraw)
 	end)
-
-	local suppress_render = {
-		[16777216] = true, [134217728] = true, [1073741824] = true, [2147483648] = true
-	}
 
 	hook.Add("Think", "body.Think", function()
 		if not CVar:GetBool() then
@@ -966,8 +964,8 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				local bEnabled = false
 
 				if not inVeh then
-					cam_Start3D(finalPos, nil, nil, nil, nil, nil, nil, 0.5, -1)		
-						render_PushCustomClipPlane(vector_down, Dot(vector_down, finalPos))
+					cam_Start3D(ply_EyePos, nil, nil, nil, nil, nil, nil, 0.5, -1)		
+						render_PushCustomClipPlane(vector_down, Dot(vector_down, ply_EyePos))
 						bEnabled = render_EnableClipping(true)					
 				end
 
