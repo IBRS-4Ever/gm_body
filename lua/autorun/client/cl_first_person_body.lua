@@ -455,6 +455,20 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	local body_is_rendering = true
 	local angle_render = Angle()
 
+	if VMS and VMS.GetViewModels then
+		VMS_GetViewModels = VMS_GetViewModels or VMS.GetViewModels
+		local VMS_GetViewModels = VMS_GetViewModels
+
+		function VMS.GetViewModels(...)
+			local mdls = VMS_GetViewModels(...)
+
+			if IsValid(ply.Body) then
+				table.insert(mdls, ply.Body)
+			end
+
+			return mdls
+		end
+	end
 	local shadow_buildBonePosition = function()
 		ply.Body_Shadow.Callback = ply.Body_Shadow:AddCallback("BuildBonePositions", function(ent, boneCount)
 			local ang = GetRenderAngles(ply)
