@@ -245,7 +245,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	local vector_fixCrouch = Vector()
 	local CreateShadow, DestroyShadow, SetRenderBounds = ENTITY.CreateShadow, ENTITY.DestroyShadow, ENTITY.SetRenderBounds
 	local vrmod = vrmod
-	local mins_render, maxs_render = Vector(-48, -48, 0), Vector(48, 48, 0)
+	local mins_render, maxs_render = Vector(-96, -96, 0), Vector(96, 96, 0)
 	local eyePos = Vector()
 	local ply_EyePos = Vector()
 
@@ -278,15 +278,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 	end)
 
 	local validBones = {}
-
-	local removeHead = function()
-		local body = ply.Body
-		local h = LookupBone(body, "ValveBiped.Bip01_Head1")
-
-		if h then
-			ManipulateBonePosition(body, h, headPos)
-		end
-	end
 
 	hook.Add("CalcView", "body.CalcView", function(ply, vec, ang)
 		if not CVar_Vehicle:GetBool()
@@ -469,12 +460,13 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			return mdls
 		end
 	end
+
 	local shadow_buildBonePosition = function()
 		ply.Body_Shadow.Callback = ply.Body_Shadow:AddCallback("BuildBonePositions", function(ent, boneCount)
 			local ang = GetRenderAngles(ply)
 			local forward = eyeAngles:Forward() * forwardDistance + vector_fixCrouch
 
-			SetRenderAngles(ply, angle_render)
+			SetRenderAngles(ply, eyeAngles)
 			a1, b1, d1 = GetPoseParameter(ply, "body_yaw", 0), GetPoseParameter(ply, "aim_yaw", 0), GetPoseParameter(ply, "head_yaw", 0)
 
 			SetPoseParameter(ply, "body_yaw", 0)
@@ -525,11 +517,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			local inVehicle = InVehicle(ply)
 
 			if not inVehicle then
-				local len = math.Clamp(ply:GetVelocity():LengthSqr() / 20000, 0, 0.5)
-				local diff = eyeAngles - ang
-				diff.y = math_NormalizeAngle(diff.y)
-				angle_render = ang + (diff * (1 - len))
-				SetRenderAngles(ply, angle_render)
+				SetRenderAngles(ply, eyeAngles)
 			end
 
 			a1, b1, c1 = GetPoseParameter(ply, "body_yaw", 0), GetPoseParameter(ply, "aim_yaw", 0), GetPoseParameter(ply, "aim_pitch", 0)
@@ -571,8 +559,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			SetPoseParameter(ply, "aim_yaw", b1)
 			SetPoseParameter(ply, "aim_pitch", c1)
 
-			removeHead()
-
 			SetupBones(legsNoDraw)
 
 			local this = (2 - (0.8 * ply.TimeToDuck))
@@ -581,7 +567,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 
 			if not inVehicle then
 				if timeCacheBones < CT then
-					timeCacheBones, potentionalBones, miscSpineBones = CT + timeCache, {}, {}
+					timeCacheBones, potentionalBones, miscSpineBones, timeCache = CT + timeCache, {}, {}, 0.15
 
 					for boneName in pairs(spineBones) do
 						local bone = LookupBone(ent, boneName)
@@ -609,7 +595,8 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 							local i = recursive[key]
 
 							if not bonesSuccess[i]
-								and (isPelvis and i == bone or not isPelvis) then
+								and (isPelvis and i == bone or not isPelvis)
+								and i then
 								bonesSuccess[i] = true
 
 								local boneName = GetBoneName(ent, i)
@@ -625,9 +612,9 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 											local matTR, mat2TR = GetTranslation(mat), GetTranslation(mat2) - vector_fixCrouch
 
 											if boneName == "ValveBiped.Bip01_Pelvis" then
-												Legs_NoDraw_Angle.y = (math.NormalizeAngle(eyeAngles.y - GetAngles(mat).y) + 90) / 1.25
+												Legs_NoDraw_Angle.y = (math_NormalizeAngle(eyeAngles.y - GetAngles(mat).y) + 90) / 1.25
 											elseif spineBones[boneName] then
-												this = 12 - (8 * ply.TimeToDuck)
+												this = 4
 											elseif miscSpineBones[i] then
 												this = 5
 											end
@@ -644,6 +631,10 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 										end
 									end
 								end
+							else
+								table.remove(cache[ent:GetModel()][bone], key)
+
+								timeCache, timeCacheBones = 0, 0
 							end
 						end
 					end
@@ -663,7 +654,7 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 									if boneName == "ValveBiped.Bip01_Pelvis" then
 										Legs_NoDraw_Angle.y = (math_NormalizeAngle(eyeAngles.y - GetAngles(mat).y) + 90) / 1.25
 									elseif spineBones[boneName] then
-										this = 12 - (8 * ply.TimeToDuck)
+										this = 4
 									elseif miscSpineBones[i] then
 										this = 5
 									end
@@ -762,7 +753,6 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 			or (ply.IsProne and ply:IsProne())
 			or realEyeAngles.p > 110
 			or realEyeAngles.p < -110
-			or GetNWBool(ply, "SitGroundSitting")
 			or (vrmod and vrmod.IsPlayerInVR(ply))
 
 		local CT = SysTime()
