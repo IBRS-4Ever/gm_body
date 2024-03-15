@@ -98,8 +98,8 @@ local bonesName = {}
 
 local CVar = CreateClientConVar("cl_gm_body", 1, true, false, L"Включить тело от 1-ого лица?", 0, 1)
 local CVar_Distance = CreateClientConVar("cl_gm_body_forward_distance", 17, true, false, L"Дистанция отдаления тела от центра позиции игрока", 8, 32)
-local CVar_Vehicle = CreateClientConVar("cl_gm_body_in_vehicle", 1, true, false, L"Включить тело от 1-ого лица в Т/С?", 0, 1)
-local CVar_Shadow = CreateClientConVar("cl_gm_body_enable_shadow", 1, true, false, L"Включить тень тела от 1-ого лица?", 0, 1)
+local CVar_Vehicle = CreateClientConVar("cl_gm_body_in_vehicle", 0, true, false, L"Включить тело от 1-ого лица в Т/С?", 0, 1)
+local CVar_Shadow = CreateClientConVar("cl_gm_body_enable_shadow", 0, true, false, L"Включить тень тела от 1-ого лица?", 0, 1)
 local forwardDistance = CVar_Distance:GetFloat()
 
 cvars.AddChangeCallback("cl_gm_body_forward_distance", function(_, _, newValue)
@@ -108,9 +108,9 @@ end, "cl_gm_legs_forward_distance")
 
 local defaultConVars = {
 	cl_gm_body = "1",
-	cl_gm_body_in_vehicle = "1",
+	cl_gm_body_in_vehicle = "0",
 	cl_gm_body_forward_distance = "17",
-	cl_gm_body_enable_shadow = "1"
+	cl_gm_body_enable_shadow = "0"
 }
 
 hook.Add("PopulateToolMenu", "body.Utilities", function()
