@@ -955,9 +955,10 @@ hook.Add("LocalPlayer_Validated", "cl_gmod_legs", function(ply)
 				body_is_rendering = true
 
 				local shootPos = _EyePos(ply)
+				local ply_EyePos = EyePos()
 
 				if render_GetRenderTarget()
-					and DistToSqr(EyePos(), shootPos) > 1024 then
+					and DistToSqr(ply_EyePos, shootPos) > 1024 then
 					return
 				end
 
