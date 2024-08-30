@@ -77,6 +77,16 @@ local translation = {
 		["Настройка тела от 1 лица"] = "Birinci şahıs beden ayarları",
 		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "Mevcut modelde bir dizi yok, lütfen başka bir model seçin.",
 		["Перезапустить тело"] = "Refresh"
+	},
+	
+	["zh-cn"] = {
+		["Включить тело от 1-ого лица?"] = "显示身体模型",
+		["Включить тело от 1-ого лица в Т/С?"] = "在载具中时显示身体",
+		["Включить тень тела от 1-ого лица?"] = "启用身体阴影（不能与 cl_drawownshadow 共用）",
+		["Дистанция отдаления тела от центра позиции игрока"] = "身体模型距离",
+		["Настройка тела от 1 лица"] = "身体模型设置",
+		["Текущая модель не имеет анимаций, выберите другую модель для показа тела от 1 лица."] = "当前模型没有动画，请换一个模型。",
+		["Перезапустить тело"] = "刷新"
 	}
 }
 
@@ -86,7 +96,7 @@ local CVar = GetConVar("gmod_language")
 
 local L = function(str)
 	local lang = CVar:GetString()
-	local getTranslation = translation[lang]
+	local getTranslation = translation[string.lower(lang)]
 
 	return getTranslation and getTranslation[str]
 		or translation["en"][str]
